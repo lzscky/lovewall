@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cc.conststar.wall.dao.CommentDao">
+
+    <resultMap type="com.cc.conststar.wall.entity.Banner" id="BannerMap">
+        <result property="id" column="id" jdbcType="INTEGER"/>
+        <result property="name" column="name" jdbcType="VARCHAR"/>
+        <result property="url" column="url" jdbcType="VARCHAR"/>
+        <result property="imgUrl" column="img_url" jdbcType="VARCHAR"/>
+        <result property="creatBy" column="creat_by" jdbcType="INTEGER"/>
+        <result property="updateBy" column="update_by" jdbcType="INTEGER"/>
+        <result property="creteTime" column="crete_time" jdbcType="TIMESTAMP"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <resultMap type="com.cc.conststar.wall.entity.UserDetail" id="UserDetailMap">
+        <result property="id" column="id" jdbcType="INTEGER"/>
+        <result property="openId" column="open_id" jdbcType="VARCHAR"/>
+        <result property="userName" column="user_name" jdbcType="VARCHAR"/>
+        <result property="wechatName" column="wechat_name" jdbcType="VARCHAR"/>
+        <result property="phone" column="phone" jdbcType="VARCHAR"/>
+        <result property="isDelete" column="is_delete" jdbcType="INTEGER"/>
+        <result property="headUrl" column="head_url" jdbcType="VARCHAR"/>
+        <result property="sex" column="sex" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <resultMap type="com.cc.conststar.wall.entity.CommentsVO" id="CommentsVOMap">
+        <result property="headUrl" column="head_url" jdbcType="VARCHAR"/>
+        <result property="userName" column="user_name" jdbcType="VARCHAR"/>
+        <result property="creatTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="imgUrl" column="img_url" jdbcType="VARCHAR"/>
+        <result property="sex" column="sex" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <!--通过openId修改数据-->
+    <update id="updateByOpenId">
+        update user_detail
+        <set>
+            <if test="userName != null and userName != ''">
+                user_name = #{userName},
+            </if>
+            <if test="wechatName != null and wechatName != ''">
+                wechat_name = #{wechatName},
+            </if>
+            <if test="phone != null and phone != ''">
+                phone = #{phone},
+            </if>
+            <if test="isDelete != null">
+                is_delete = #{isDelete},
+            </if>
+            <if test="headUrl != null and headUrl != ''">
+                head_url = #{headUrl},
+            </if>
+
+        </set>
+        where open_id = #{openId}
+    </update>
+
+    <!--新增用户-->
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        insert into user_detail(open_id, user_name, wechat_name, phone, is_delete, head_url, creat_time, updatee_timem,sex)
+        values (#{openId}, #{userName}, #{wechatName}, #{phone}, 0, #{headUrl}, now(), now(),#{sex})
+    </insert>
+
+    <!--查询单个openId-->
+    <select id="queryByOpenId" resultMap="UserDetailMap">
+        select
+            id, open_id, user_name, wechat_name, phone, is_delete, head_url, creat_time, updatee_timem,sex
+        from user_detail
+        where open_id = #{openId}
+    </select>
+
+    <!--新增表白文本返回id-->
+    <insert id="insertText" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO `comment_detail`(title, text,img_url) VALUES ( #{title}, #{text},#{imgUrl})
+    </insert>
+
+    <!--新增表白关联返回id-->
+    <insert id="insertTotle" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO `comment_totle`( `user_id`, `comment_id`, `create_time`, `update_time`, `is_delete`,is_check)
+        VALUES ( #{userId}, #{commentId}, NOW(), NOW(), 0,#{isCheck})
+
+    </insert>
+
+
+
+    <!--查询当日发布-->
+    <select id="getComments" resultMap="CommentsVOMap">
+        SELECT ud.head_url,ud.user_name,ud.sex,ct.create_time,cd.title,cd.text,cd.img_url,ct.id AS objectId,COUNT(pd.comment_id) AS supportNum,
+        COUNT(cr.comment_id) AS comments
+        FROM user_detail ud
+        RIGHT JOIN comment_totle ct ON ct.user_id = ud.id
+        LEFT JOIN comment_detail cd ON cd.id = ct.comment_id
+        LEFT JOIN praise_detail pd ON pd.comment_id = cd.id
+        LEFT JOIN comment_reply cr on cr.comment_id = cd.id
+        WHERE date_sub(curdate(), interval #{day} day)  <![CDATA[ <= ]]> date(ct.create_time)
+        GROUP BY ct.id
+        ORDER BY ct.id DESC
+    </select>
+
+    <!--新增背景图返回id-->
+    <insert id="insertBack" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO `homepage_back_img` ( `user_id`, `back_url`, `create_time`, `update_time` )
+        VALUES
+            ( #{userId}, #{backUrl}, NOW(), NOW() )
+    </insert>
+
+    <!--修改背景图返回id-->
+    <update id="updateBack" >
+        UPDATE `homepage_back_img` SET  `back_url` = #{backUrl},  `update_time` = NOW() WHERE `id` = #{userId}
+    </update>
+
+    <!--查询当日发布-->
+    <select id="getBackImg" resultType="com.cc.conststar.wall.entity.BackImg">
+        SELECT user_id as userId,back_url as backUrl
+        FROM homepage_back_img
+        WHERE user_id = #{userId}
+    </select>
+
+</mapper>
+
