@@ -57,7 +57,7 @@ public class UploadFileFaced {
                 url="https://img0.baidu.com/it/u=1764313044,42117373&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=500";
                 result.setCode(200+"");
                 result.setMsg("图片上传成功");
-                System.out.println("图片上传成功 url:"+url);
+                //System.out.println("图片上传成功 url:"+url);
                 map.put("url", url);
                 result.setData(map);
             } catch (Exception e) {

@@ -13,7 +13,7 @@
         <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
     </resultMap>
 
-    <!--查询单个-->
+
     <select id="queryById" resultMap="BannerMap">
         select id,
                name,
@@ -27,7 +27,7 @@
         where id = #{id}
     </select>
 
-    <!--查询指定行数据-->
+
     <select id="queryAllByLimit" resultMap="BannerMap">
         select
         id, name, url, img_url, creat_by, update_by, crete_time, update_time
@@ -60,7 +60,6 @@
         </where>
     </select>
 
-    <!--统计总行数-->
     <select id="count" resultType="java.lang.Long">
         select count(1)
         from banner
@@ -92,7 +91,7 @@
         </where>
     </select>
 
-    <!--新增所有列-->
+
     <insert id="insert" keyProperty="id" useGeneratedKeys="true">
         insert into banner(name, url, img_url, creat_by, update_by, crete_time, update_time)
         values (#{name}, #{url}, #{imgUrl}, #{creatBy}, #{updateBy}, #{creteTime}, #{updateTime})
@@ -124,7 +123,7 @@
         update_time = values(update_time)
     </insert>
 
-    <!--通过主键修改数据-->
+
     <update id="update">
         update banner
         <set>
@@ -153,7 +152,6 @@
         where id = #{id}
     </update>
 
-    <!--通过主键删除-->
     <delete id="deleteById">
         delete
         from banner

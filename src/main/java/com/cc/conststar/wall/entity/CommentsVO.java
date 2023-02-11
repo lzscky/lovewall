@@ -20,6 +20,26 @@ public class CommentsVO {
     private long supportNum;
     private long comments;
 
+    private int isCheck;
+
+    private long userId;
+
+    public long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(long userId) {
+        this.userId = userId;
+    }
+
+    public int getIsCheck() {
+        return isCheck;
+    }
+
+    public void setIsCheck(int isCheck) {
+        this.isCheck = isCheck;
+    }
+
     public String getTime() {
         return time;
     }

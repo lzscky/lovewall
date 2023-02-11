@@ -3,7 +3,6 @@ package com.cc.conststar.wall.dao;
 import com.cc.conststar.wall.entity.Banner;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.springframework.boot.autoconfigure.data.web.SpringDataWebProperties;
 
 import java.util.List;
 

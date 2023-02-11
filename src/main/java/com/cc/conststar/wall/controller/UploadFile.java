@@ -36,8 +36,8 @@ public class UploadFile {
         String url="";//返回存储路径
         String fileName=file.getOriginalFilename();//获取文件名加后缀
         if(fileName!=null&&fileName!=""){
-            //String path = "/data/headimg/";
-            String path = "F:/filepath/";
+            String path = "/usr/upload";
+            //String path = "F:/filepath/";
             String fileF = fileName.substring(fileName.lastIndexOf("."), fileName.length());//文件后缀
             if (!(fileF.equals(".jpg") || fileF.equals(".jpeg") || fileF.equals(".png") || fileF.equals(".image"))) {
                 result.setMsg("只能上传jpg,jpeg,png,image格式");
@@ -61,11 +61,11 @@ public class UploadFile {
                 Runtime runtime = Runtime.getRuntime();
                 Process proc = runtime.exec(command);*/
                 //生成文件地址
-                //url="http://XXXXXXXXX.cn"+path+"/"+fileName;
-                url="https://img0.baidu.com/it/u=1764313044,42117373&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=500";
+                url="http://1.14.75.234:8082/pic/"+fileName;
+                //url="https://img0.baidu.com/it/u=1764313044,42117373&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=500";
                 result.setCode(200+"");
                 result.setMsg("图片上传成功");
-                System.out.println("图片上传成功 url:"+url);
+                //System.out.println("图片上传成功 url:"+url);
                 map.put("url", url);
                 result.setData(map);
             } catch (Exception e) {

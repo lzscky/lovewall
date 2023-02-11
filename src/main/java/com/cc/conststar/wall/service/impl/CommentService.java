@@ -19,12 +19,48 @@ public interface CommentService {
 
     List<CommentsVO> getComments(int day);
 
+    List<CommentsVO> getCommentsByUserId(long id);
+    CommentsVO getCommentById(int id);
+
     void insertBack(BackImg backImg);
 
     void updateBack(BackImg backImg);
 
     BackImg getBackImg( long userId);
 
+    void insertreply(Reply reply,String openId);
+    void updateReply(Reply reply);
+    List<Reply> getReplys(long commentId);
 
+    List<Long> getPraise(long commentId);
+
+    int insertPraise( long commentId, long userId);
+
+    void addRanking(Ranking ranking,String openId);
+
+    void deleteRanking(Long rankingId);
+
+    void updateRanking(Ranking ranking);
+
+    List<Ranking> getRankings( int day);
+
+
+    /**
+     * 汽车之家爬
+     */
+    List<BrandsHome> getBrands(int brandNum);
+    int addManufacturer(CarHomeManufacturer carHomeManufacturer);
+
+    int addSeries(CarHomeSeries carHomeSeries);
+
+    List<CarHomeSeries> getSeries(int seriesNum);
+
+    int addModel(CarHomeModel carHomeModel);
+
+    void deleteError();
+
+    int insertErrorGo(ErrorGoOn errorGoOn);
+
+    ErrorGoOn getError();
 
 }

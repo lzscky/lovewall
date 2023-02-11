@@ -1,10 +1,12 @@
 package com.cc.conststar.wall.faced;
 
 import com.alibaba.fastjson.JSON;
+
 import com.alibaba.fastjson.JSONObject;
-import com.cc.conststar.wall.entity.Comment;
-import com.cc.conststar.wall.entity.UserDetail;
+import com.cc.conststar.wall.entity.*;
+import com.cc.conststar.wall.service.impl.BannerService;
 import com.cc.conststar.wall.service.impl.CommentService;
+
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -12,20 +14,32 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.io.BufferedReader;
+
 import java.io.InputStreamReader;
+
 import java.net.URL;
 import java.net.URLConnection;
-import java.net.URLEncoder;
+
+import java.util.List;
+
+
 
 @Component
 public class CommentFaced {
 
     @Autowired
+    BannerService bannerService;
+
+    @Autowired
     CommentService commentService;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
     private String url = "https://api.weixin.qq.com/sns/jscode2session";
     private String appID = "wxcf8ec48a1ef23834";
@@ -51,7 +65,7 @@ public class CommentFaced {
 
     public Boolean addUserPhone (String code) throws Exception {
         String accessToken = getAccessToken();
-        String url = getgetPhoneNumberApi(accessToken);
+        String url = getPhoneNumberApi(accessToken);
         StringBuilder json = new StringBuilder();
         json.append("{\"code\": \""+code+"\"}");
         String s = doPost(url, json.toString());
@@ -121,7 +135,7 @@ public class CommentFaced {
         return builder.toString();
     }
 
-    public String getgetPhoneNumberApi(String accessToken) {
+    public String getPhoneNumberApi(String accessToken) {
         StringBuilder builder = new StringBuilder("https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=");
         builder.append(accessToken);
         return builder.toString();
@@ -143,5 +157,93 @@ public class CommentFaced {
         client.close();
         return result;
     }
+
+    /*public String getAccToken(String accessTokenUrl){
+        String accessToken = "";
+        System.out.println("获取accessToken-------------------------");
+        if(redisTemplate.hasKey("accessToken") ){
+            accessToken = redisTemplate.opsForValue().get("accessToken");
+        }else {
+            String response = getResponse(accessTokenUrl
+                    + "&appid=" + "wx16e93eaddcfe2773" + "&secret=" + "2ada1b8609d6ebed8022532003cb505e");
+            JSONObject object = JSON.parseObject(response);
+            System.out.println("response:"+object);
+            if (object != null && object.getString("access_token") != null ) {
+                accessToken = object.getString("access_token");
+                int expiresIn = object.getIntValue("expires_in");
+
+                redisTemplate.opsForValue().set("accessToken",accessToken, expiresIn, TimeUnit.SECONDS);
+                accessToken = redisTemplate.opsForValue().get("accessToken");
+                System.out.println("accessToken"+expiresIn);
+            }
+            *//*redisTemplate.opsForValue().set("accessToken","accessTokenValue", 120, TimeUnit.SECONDS);
+            accessToken = redisTemplate.opsForValue().get("accessToken");*//*
+
+        }
+
+        return accessToken;
+    }
+    public String getJsapiTicket(String accessToken,String jsapiTicketUrl){
+        String jsapiTicket = "";
+        System.out.println("jsapiTicket-------------------------");
+        if(redisTemplate.hasKey("jsapiTicket") ){
+            jsapiTicket = redisTemplate.opsForValue().get("jsapiTicket");
+        }else {
+            String response = getResponse(jsapiTicketUrl + "?access_token=" + accessToken + "&type=jsapi");
+            JSONObject object = JSON.parseObject(response);
+            System.out.println("response:"+object);
+            if (object != null && object.getString("ticket") != null ) {
+                jsapiTicket = object.getString("ticket");
+                int expiresIn = object.getIntValue("expires_in");
+
+                redisTemplate.opsForValue().set("jsapiTicket",jsapiTicket, expiresIn, TimeUnit.SECONDS);
+                jsapiTicket = redisTemplate.opsForValue().get("jsapiTicket");
+                System.out.println("jsapiTicket"+expiresIn);
+            }
+            *//*redisTemplate.opsForValue().set("jsapiTicket","jsapiTicketValue", 120, TimeUnit.SECONDS);
+            jsapiTicket = redisTemplate.opsForValue().get("jsapiTicket");*//*
+
+        }
+        return jsapiTicket;
+    }
+
+    public WechatJsSDK makeShaSign(String url,String accessTokenUrl,String jsapiTicketUrl){
+
+        WechatJsSDK wechatJsSDK = new WechatJsSDK();
+
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String noncestr = UUID.randomUUID().toString();
+
+        String accToken = getAccToken(accessTokenUrl);
+        if (StringUtils.isEmpty(accToken)){
+            return null;
+        }
+        String jsapiTicket = getJsapiTicket(accToken,jsapiTicketUrl);
+        if (StringUtils.isEmpty(jsapiTicket)){
+            return null;
+        }
+
+        String waitSha = "jsapi_ticket=" + jsapiTicket + "&noncestr=" + noncestr + "&timestamp="
+                + timestamp + "&url=" + url;
+        String shaSign = DigestUtils.sha1Hex(waitSha);
+
+        wechatJsSDK.setAppId("appId");
+        wechatJsSDK.setNonceStr(noncestr);
+        wechatJsSDK.setTimestamp(Long.parseLong(timestamp));
+        wechatJsSDK.setSignature(shaSign);
+        return wechatJsSDK;
+    }
+*/
+
+    public String redisTest(){
+        List<Banner> url = bannerService.getUrl();
+        String jsonString = JSON.toJSONString(url);
+        redisTemplate.opsForList().rightPush("list",jsonString);
+        List<String> list = redisTemplate.opsForList().range("list", 0, -1);
+        return list.toString();
+    }
+
+
+
 
 }

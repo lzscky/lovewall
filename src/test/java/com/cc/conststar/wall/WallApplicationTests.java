@@ -2,7 +2,9 @@ package com.cc.conststar.wall;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.cc.conststar.wall.faced.CommentFaced;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.text.ParseException;
@@ -11,6 +13,9 @@ import java.util.Date;
 
 @SpringBootTest
 class WallApplicationTests {
+
+    @Autowired
+    CommentFaced commentFaced;
 
     @Test
     void contextLoads() throws ParseException {
@@ -26,5 +31,11 @@ class WallApplicationTests {
         System.out.println(a);
 
     }
+    @Test
+    void redisTest(){
+        String s = commentFaced.redisTest();
+        System.out.println(s);
+    }
+
 
 }

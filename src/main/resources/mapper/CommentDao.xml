@@ -32,8 +32,18 @@
         <result property="sex" column="sex" jdbcType="INTEGER"/>
     </resultMap>
 
-    <!--通过openId修改数据-->
-    <update id="updateByOpenId">
+    <resultMap type="com.cc.conststar.wall.entity.Reply" id="ReplyMap">
+        <result property="id" column="id" jdbcType="INTEGER"/>
+        <result property="parentId" column="parent_id" jdbcType="INTEGER"/>
+        <result property="commentId" column="comment_id" jdbcType="INTEGER"/>
+        <result property="userId" column="user_id" jdbcType="INTEGER"/>
+        <result property="content" column="content" jdbcType="VARCHAR"/>
+        <result property="headUrl" column="head_url" jdbcType="VARCHAR"/>
+        <result property="userName" column="user_name" jdbcType="VARCHAR"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <update id="updateById">
         update user_detail
         <set>
             <if test="userName != null and userName != ''">
@@ -53,16 +63,16 @@
             </if>
 
         </set>
-        where open_id = #{openId}
+        where id = #{id}
     </update>
 
-    <!--新增用户-->
+
     <insert id="insert" keyProperty="id" useGeneratedKeys="true">
         insert into user_detail(open_id, user_name, wechat_name, phone, is_delete, head_url, creat_time, updatee_timem,sex)
         values (#{openId}, #{userName}, #{wechatName}, #{phone}, 0, #{headUrl}, now(), now(),#{sex})
     </insert>
 
-    <!--查询单个openId-->
+
     <select id="queryByOpenId" resultMap="UserDetailMap">
         select
             id, open_id, user_name, wechat_name, phone, is_delete, head_url, creat_time, updatee_timem,sex
@@ -70,12 +80,12 @@
         where open_id = #{openId}
     </select>
 
-    <!--新增表白文本返回id-->
+
     <insert id="insertText" keyProperty="id" useGeneratedKeys="true">
         INSERT INTO `comment_detail`(title, text,img_url) VALUES ( #{title}, #{text},#{imgUrl})
     </insert>
 
-    <!--新增表白关联返回id-->
+
     <insert id="insertTotle" keyProperty="id" useGeneratedKeys="true">
         INSERT INTO `comment_totle`( `user_id`, `comment_id`, `create_time`, `update_time`, `is_delete`,is_check)
         VALUES ( #{userId}, #{commentId}, NOW(), NOW(), 0,#{isCheck})
@@ -83,38 +93,263 @@
     </insert>
 
 
-
-    <!--查询当日发布-->
     <select id="getComments" resultMap="CommentsVOMap">
         SELECT ud.head_url,ud.user_name,ud.sex,ct.create_time,cd.title,cd.text,cd.img_url,ct.id AS objectId,COUNT(pd.comment_id) AS supportNum,
-        COUNT(cr.comment_id) AS comments
+        COUNT(cr.comment_id) AS comments,ct.is_check as isCheck
         FROM user_detail ud
         RIGHT JOIN comment_totle ct ON ct.user_id = ud.id
         LEFT JOIN comment_detail cd ON cd.id = ct.comment_id
         LEFT JOIN praise_detail pd ON pd.comment_id = cd.id
         LEFT JOIN comment_reply cr on cr.comment_id = cd.id
         WHERE date_sub(curdate(), interval #{day} day)  <![CDATA[ <= ]]> date(ct.create_time)
+        and ct.is_delete = 0
         GROUP BY ct.id
         ORDER BY ct.id DESC
     </select>
 
-    <!--新增背景图返回id-->
+    <select id="getCommentsByUserId" resultMap="CommentsVOMap">
+        SELECT ud.head_url,ud.user_name,ud.sex,ct.create_time,cd.title,cd.text,cd.img_url,ct.id AS objectId,COUNT(pd.comment_id) AS supportNum,
+               COUNT(cr.comment_id) AS comments,ct.is_check as isCheck
+        FROM user_detail ud
+                 RIGHT JOIN comment_totle ct ON ct.user_id = ud.id
+                 LEFT JOIN comment_detail cd ON cd.id = ct.comment_id
+                 LEFT JOIN praise_detail pd ON pd.comment_id = cd.id
+                 LEFT JOIN comment_reply cr on cr.comment_id = cd.id
+        WHERE ud.id= #{id}
+          and ct.is_delete = 0
+        GROUP BY ct.id
+        ORDER BY ct.id DESC
+    </select>
+
+
+    <select id="getCommentById" resultMap="CommentsVOMap">
+        SELECT ud.head_url,ud.user_name,ud.sex,ct.create_time,cd.title,cd.text,cd.img_url,ct.id AS objectId,COUNT(pd.comment_id) AS supportNum,
+               COUNT(cr.comment_id) AS comments,ct.is_check as isCheck
+        FROM user_detail ud
+                 RIGHT JOIN comment_totle ct ON ct.user_id = ud.id
+                 LEFT JOIN comment_detail cd ON cd.id = ct.comment_id
+                 LEFT JOIN praise_detail pd ON pd.comment_id = cd.id
+                 LEFT JOIN comment_reply cr on cr.comment_id = cd.id
+        WHERE ct.id = #{id}
+    </select>
+
+
+    <select id="getPraise" resultType="long">
+        SELECT user_id as userId
+        FROM praise_detail
+        WHERE comment_id = #{commentId}
+    </select>
+
+
+    <insert id="insertPraise" >
+        INSERT INTO `praise_detail` ( `comment_id`, `user_id`, `create_time` )
+        VALUES
+            ( #{commentId}, #{userId}, NOW() )
+    </insert>
+
+
+    <insert id="insertreply" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO `comment_reply` ( `parent_id`, `comment_id`, `user_id`, `content`, `is_delete`, `create_time`, `update_time` )
+        VALUES
+            ( #{parentId}, #{commentId}, #{userId}, #{content}, 0, NOW(), NOW() )
+    </insert>
+
+
+    <update id="updateReply" >
+        UPDATE `comment_reply`
+        SET `content` = #{content},
+        <if test="isDelete != 0 and isDelete != null">
+            is_delete = 1,
+        </if>
+            `update_time` = NOW()
+        WHERE
+            `id` = #{id}
+    </update>
+
+
+    <select id="getReplys" resultMap="ReplyMap">
+        SELECT
+            cr.id,
+            cr.parent_id,
+            cr.comment_id,
+            cr.user_id,
+            cr.content,
+            cr.update_time,
+            ud.head_url,
+            ud.user_name
+        FROM
+            comment_reply cr
+                LEFT JOIN user_detail ud ON ud.id = cr.user_id
+        WHERE
+            cr.comment_id = #{commentId}
+    </select>
+
+
     <insert id="insertBack" keyProperty="id" useGeneratedKeys="true">
         INSERT INTO `homepage_back_img` ( `user_id`, `back_url`, `create_time`, `update_time` )
         VALUES
             ( #{userId}, #{backUrl}, NOW(), NOW() )
     </insert>
 
-    <!--修改背景图返回id-->
     <update id="updateBack" >
         UPDATE `homepage_back_img` SET  `back_url` = #{backUrl},  `update_time` = NOW() WHERE `id` = #{userId}
     </update>
 
-    <!--查询当日发布-->
+
     <select id="getBackImg" resultType="com.cc.conststar.wall.entity.BackImg">
         SELECT user_id as userId,back_url as backUrl
         FROM homepage_back_img
         WHERE user_id = #{userId}
+    </select>
+
+    <insert id="addRanking" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO `image_ranking` ( `user_id`, `url`, `is_delete`, `create_time`, `update_time` )
+        VALUES
+            ( #{userId}, #{url}, 0, NOW(), NOW() )
+    </insert>
+
+    <update id="updateRanking">
+        update image_ranking
+        <set>
+            <if test="userId != null and userId != ''">
+                user_id = #{userName},
+            </if>
+            <if test="url != null and url != ''">
+                url = #{url},
+            </if>
+            <if test="isDelete != null and isDelete != ''">
+                is_delete = #{isDelete},
+            </if>
+            <if test="isDelete != null">
+                is_delete = #{isDelete},
+            </if>
+            update_time =NOW()
+        </set>
+        where id = #{rankingId}
+    </update>
+
+    <select id="getRankings" resultType="com.cc.conststar.wall.entity.Ranking">
+        SELECT ir.id,ir.user_id as userId,ir.url,
+        COUNT(rp.ranking_id) AS paiseNum
+        FROM image_ranking ir
+        LEFT JOIN ranking_paise rp on rp.ranking_id = ir.id
+        WHERE date_sub(curdate(), interval #{day} day)   <![CDATA[ <= ]]>  date(ir.create_time)
+        and ir.is_delete = 0
+        GROUP BY ir.id
+        ORDER BY ir.id DESC
+    </select>
+
+    <select id="getBrands" resultType="com.cc.conststar.wall.entity.BrandsHome">
+        SELECT id,name,letter FROM `car_home_brand` order by id asc  LIMIT #{brandNum},99999
+    </select>
+
+    <insert id="addManufacturer" >
+        INSERT INTO`car_home_manufacturer` ( `fctid`, `fctname`, `fctPy`, `series_place`, `series_place_num` )
+        VALUES
+            ( #{fctid}, #{fctname}, #{fctpy}, #{seriesPlace}, #{seriesPlaceNum} )
+    </insert>
+
+    <insert id="addSeries" >
+        INSERT INTO `car_home_series` (
+            `seriesid`,
+            `brand_id`,
+            `fctid`,
+            `fctname`,
+            `seriesplace`,
+            `seriesName`,
+            `seriesImg`,
+            `seriesState`,
+            `seriesPriceMin`,
+            `seriesPriceMax`,
+            `rank`,
+            `pnglogo`,
+            `newenergySeriesId`,
+            `containbookedspec`,
+            `newenergy`,
+            `levelId`,
+            `levelName`,
+            `fctPy`,
+            `isForeignCar`,
+            `uvRank`,
+            `hotRank`
+        )
+        VALUES
+            (
+                #{seriesid},
+                #{brandId},
+                #{fctid},
+                #{fctname},
+                #{seriesplace},
+                #{seriesname},
+                #{seriesimg},
+                #{seriesstate},
+                #{seriespricemin},
+                #{seriespricemax},
+                #{rank},
+                #{pnglogo},
+                #{newenergyseriesid},
+                #{containbookedspec},
+                #{newenergy},
+                #{levelid},
+                #{levelname},
+                #{fctpy},
+                #{isforeigncar},
+                #{uvrank},
+                #{hotrank}
+            )
+    </insert>
+
+    <select id="getSeries" resultType="com.cc.conststar.wall.entity.CarHomeSeries">
+        SELECT
+            id,
+            seriesid,
+            brand_id AS brandId,
+            fctid,
+            fctname,
+            seriesplace,
+            seriesName,
+            seriesImg,
+            seriesState,
+            seriesPriceMin,
+            seriesPriceMax,
+            rank,
+            pnglogo,
+            newenergySeriesId,
+            containbookedspec,
+            newenergy,
+            levelId,
+            levelName,
+            fctPy,
+            isForeignCar,
+            uvRank,
+            hotRank
+        FROM
+            `car_home_series`
+        ORDER BY seriesid ASC LIMIT #{seriesNum},99999
+<!--        where 1 = 1
+        <if test="seriesid != null and seriesid > 0">
+            and seriesid = #{seriesid}
+        </if>-->
+    </select>
+
+    <insert id="addModel" >
+        INSERT INTO `car_home_model` ( `model_id`, `name`, `price`, `type_id`, `series_id` )
+        VALUES
+            ( #{modelId}, #{modelName}, #{price}, #{typeId}, #{seriesId} )
+    </insert>
+
+    <update id="deleteError">
+        UPDATE error_go_on SET series_num = 0
+    </update>
+
+    <update id="insertErrorGo">
+        UPDATE error_go_on SET
+        series_num = #{seriesNum},series_id = #{seriesId},
+        model_id = #{modelId}, model_num = #{modelNum}, brand_id = #{brandId}, brand_num = #{brandNum}
+    </update>
+
+    <select id="getError" resultType="com.cc.conststar.wall.entity.ErrorGoOn">
+        SELECT * FROM error_go_on
     </select>
 
 </mapper>

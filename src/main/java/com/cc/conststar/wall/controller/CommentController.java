@@ -32,13 +32,112 @@ public class CommentController {
     @Autowired
     UploadFileFaced uploadFileFaced;
 
+
+    @GetMapping( "/selectRanking")
+    public GenericHandler<List<Ranking>> selectRanking(@RequestParam("day") int day) {
+
+
+        return FormatHandler.retParam(ResponseEnumConstant.CODE_200, commentService.getRankings(day));
+
+    }
+
+    @PostMapping("/updateRanking")
+    public GenericHandler<Boolean> updateRanking(@RequestBody Ranking ranking){
+
+        commentService.updateRanking(ranking);
+        return FormatHandler.retParam(ResponseEnumConstant.CODE_200, true);
+    }
+
+    @GetMapping( "/deleteRanking")
+    public GenericHandler<Boolean> deleteRanking(@RequestParam("rankingId") Long rankingId) {
+
+        commentService.deleteRanking(rankingId);
+        return FormatHandler.retParam(ResponseEnumConstant.CODE_200, true);
+
+    }
+
+    @PostMapping("/addRanking")
+    public GenericHandler<Boolean> addRanking(@RequestBody Ranking ranking){
+        String code = ranking.getCode();
+        String openId = faced.getOpenId(code);
+
+        commentService.addRanking(ranking, openId);
+        return FormatHandler.retParam(ResponseEnumConstant.CODE_200, true);
+    }
+
+   /* @GetMapping( "/wechat/getWechatJsSDK")
+    public WechatJsSDK getWechatJsSDK(@RequestParam("url") String url,@RequestParam("accessTokenUrl") String accessTokenUrl,
+                                      @RequestParam("jsapiTicketUrl") String jsapiTicketUrl) {
+
+        return faced.makeShaSign(url,accessTokenUrl,jsapiTicketUrl);
+
+    }*/
+    @GetMapping("/insertPraise")
+    public GenericHandler<Boolean> insertPraise(@RequestParam("commentId") long commentId, @RequestParam("code") String code){
+
+        String openId = faced.getOpenId(code);
+        UserDetail userDetail = commentService.getUserDetail(openId);
+        int i = commentService.insertPraise(commentId, userDetail.getId());
+
+        return FormatHandler.retParam(ResponseEnumConstant.CODE_200, true);
+    }
+
+    @GetMapping("/getPraise")
+    public GenericHandler<Praise> getPraise(@RequestParam("commentId") long commentId,@RequestParam("code") String code){
+
+        String openId = faced.getOpenId(code);
+        UserDetail userDetail = commentService.getUserDetail(openId);
+        List<Long> praise = commentService.getPraise(commentId);
+        Praise praises = new Praise();
+        praises.setUserIds(praise);
+        praises.setUserId(userDetail.getId());
+
+        return FormatHandler.retParam(ResponseEnumConstant.CODE_200, praises);
+    }
+
+
+    @GetMapping("/getReplys")
+    public GenericHandler<List<Reply>> getReplys(@RequestParam("commentId") long commentId){
+
+        List<Reply> replys = commentService.getReplys(commentId);
+
+        return FormatHandler.retParam(ResponseEnumConstant.CODE_200, replys);
+    }
+
+    @PostMapping("/insertreply")
+    public GenericHandler<Boolean> insertreply(@RequestBody Reply reply){
+        String code = reply.getCode();
+        String openId = faced.getOpenId(code);
+
+        commentService.insertreply(reply, openId);
+        return FormatHandler.retParam(ResponseEnumConstant.CODE_200, true);
+    }
+
+    @PostMapping("/updateReply")
+    public GenericHandler<Boolean> updateReply(@RequestBody Reply reply){
+
+        commentService.updateReply(reply);
+        return FormatHandler.retParam(ResponseEnumConstant.CODE_200, true);
+    }
+
+
     @GetMapping("/getUser")
     public GenericHandler<UserDetail> getUser(@RequestParam("code") String code){
 
         String openId = faced.getOpenId(code);
         UserDetail userDetail = commentService.getUserDetail(openId);
+        userDetail.setOpenId("");
 
         return FormatHandler.retParam(ResponseEnumConstant.CODE_200, userDetail);
+
+    }
+
+    @GetMapping("/getCommentsByUserId")
+    public GenericHandler<List<CommentsVO>> getCommentsByUserId(@RequestParam("id") long id){
+
+        List<CommentsVO> comments = commentService.getCommentsByUserId(id);
+
+        return FormatHandler.retParam(ResponseEnumConstant.CODE_200, comments);
 
     }
 
@@ -48,6 +147,15 @@ public class CommentController {
         List<CommentsVO> comments = commentService.getComments(day);
 
         return FormatHandler.retParam(ResponseEnumConstant.CODE_200, comments);
+
+    }
+    //获取墙详情by ID
+    @GetMapping("/getCommentById")
+    public GenericHandler<CommentsVO> getCommentById(@RequestParam("objectId") int id){
+
+        CommentsVO commentById = commentService.getCommentById(id);
+
+        return FormatHandler.retParam(ResponseEnumConstant.CODE_200, commentById);
 
     }
 
@@ -111,31 +219,33 @@ public class CommentController {
 
     @PostMapping("/editUserHeadImg")
     public ResultResp editUserHeadImg(@RequestParam(value="file",required=false) MultipartFile file,
-                                      @RequestParam(value = "openId") String openId, HttpServletRequest request, HttpServletResponse response){
+                                      @RequestParam(value = "id") long id, HttpServletRequest request, HttpServletResponse response){
 
         ResultResp resultResp = uploadFileFaced.uploadPicture(file, request, response);
         UserDetail userDetail = new UserDetail();
         userDetail.setHeadUrl((String) resultResp.getData().get("url"));
         //System.out.println((String) resultResp.getData().get("url"));
-        userDetail.setOpenId(openId);
+        userDetail.setId(id);
         commentService.editUserDetail(userDetail);
         return resultResp;
     }
 
     @PostMapping("/editBackImg")
     public ResultResp editBackImg(@RequestParam(value="file",required=false) MultipartFile file,
-                                      @RequestParam(value = "openId") String openId, HttpServletRequest request, HttpServletResponse response){
+                                      @RequestParam(value = "id") long id, HttpServletRequest request, HttpServletResponse response){
 
         ResultResp resultResp = uploadFileFaced.uploadPicture(file, request, response);
-        UserDetail userDetail = commentService.getUserDetail(openId);
         BackImg backImg = new BackImg();
         backImg.setBackUrl((String) resultResp.getData().get("url"));
-        backImg.setUserId(userDetail.getId());
+        backImg.setUserId(id);
+        if ( id == 0){
+            resultResp.setCode("10004");
+            resultResp.setMsg("参数缺失");
+            return resultResp;
+        }
         commentService.insertBack(backImg);
         return resultResp;
     }
-
-
 
 
 
