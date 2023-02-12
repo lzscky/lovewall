@@ -352,5 +352,45 @@
         SELECT * FROM error_go_on
     </select>
 
+    <select id="getModelIdGroupBySeriesId" resultType="com.cc.conststar.wall.entity.ModelByGroupBySeries">
+
+        SELECT id,model_id AS modelId,name,price,type_id AS typeId,series_id AS seriesId FROM `car_home_model`
+        GROUP BY series_id ORDER BY model_id ASC
+        LIMIT #{begin},99999
+
+    </select>
+
+    <insert id="addCarHomeKeys" >
+        INSERT INTO `car_home_key_words` ( `id`, `link`, `name` )
+        VALUES
+            (  #{id},  #{link},  #{name} )
+    </insert>
+
+    <insert id="addVehicleConfigParam" >
+        INSERT INTO `car_home_basic_param` (  `top_name`, `key_id`, `name`, `pnid`, `specid`, `value` )
+        VALUES
+            ( #{topName},#{keyId}, #{name}, #{pnid}, #{specid}, #{value})
+    </insert>
+
+    <insert id="addVehicleSafeParam" >
+        INSERT INTO `car_home_security_config` (  `top_name`, `config_id`, `key_id`, `name`, `pnid`, `price_price`,
+                                                `price_subname`, `specid`, `sublist_price`, `sublist_subname`, `sublist_subvalue`, `value` )
+        VALUES
+            ( #{topName},#{configId}, #{keyId}, #{name}, #{pnid}, #{pricePrice},
+             #{priceSubname},#{specid}, #{sublistPrice}, #{sublistSubname}, #{sublistSubvalue}, #{value} )
+    </insert>
+
+    <insert id="addVehicleColorParam" >
+        INSERT INTO `car_home_exterior_color` ( `specid`, `clubpicnum`, `name`, `picnum`, `color_id`, `value` )
+        VALUES
+            (#{specid},#{clubpicnum}, #{name}, #{picnum}, #{colorId}, #{value} )
+    </insert>
+
+    <insert id="addVehicleInnerColorParam" >
+        INSERT INTO `car_home_inner_color` ( `specid`, `clubpicnum`, `name`, `picnum`, `color_id`, `value` )
+        VALUES
+            (#{specid},#{clubpicnum}, #{name}, #{picnum}, #{colorId}, #{value} )
+    </insert>
+
 </mapper>
 

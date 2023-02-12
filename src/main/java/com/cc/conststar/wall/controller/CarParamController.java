@@ -37,8 +37,8 @@ public class CarParamController {
 
     }
 
-    @GetMapping("/startSaveModelParams")
-    public GenericHandler<Integer> startSaveModelParams() throws Exception {
+    @GetMapping("/startSaveModel")
+    public GenericHandler<Long> startSaveModel() throws Exception {
 
         return FormatHandler.retParam(ResponseEnumConstant.CODE_200, faced.startSaveModelParams());
 

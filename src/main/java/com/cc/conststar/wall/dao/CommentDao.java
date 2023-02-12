@@ -89,4 +89,17 @@ public interface CommentDao {
     int insertErrorGo(ErrorGoOn errorGoOn);
 
     ErrorGoOn getError();
+
+    List<ModelByGroupBySeries> getModelIdGroupBySeriesId(@Param("begin")int begin);
+
+
+    int addCarHomeKeys(CarKeysWords carKeysWords);
+
+    int addVehicleConfigParam(CarHomeBasicParam carHomeBasicParam);
+
+    int addVehicleSafeParam(CarHomeSecurityConfig carHomeSecurityConfig);
+    int addVehicleColorParam(CarHomeExteriorColor carHomeExteriorColor);
+    int addVehicleInnerColorParam(CarHomeExteriorColor carHomeExteriorColor);
+
+
 }

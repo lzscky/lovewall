@@ -157,7 +157,7 @@ public class CarHomeParamFaced {
 
                             int i1 = commentService.addSeries(carHomeSeries);
                             System.out.println("-----当前保存第"+total+"条车系数据-----车系ID："+ seriesid);
-                            total = total + i1;
+                            //total = total + i1;
 
                         }
 
@@ -238,99 +238,311 @@ public class CarHomeParamFaced {
     }
 
 
+    long modelNumTotle = 0;
+    public long startSaveModelParams() {
 
-    public int startSaveModelParams() throws Exception {
+        ErrorGoOn error = commentService.getError();
+        int errorModelId = error.getModelId();
+        int errorModelNum = error.getModelNum();
+        List<ModelByGroupBySeries> modelIdGroupBySeriesIdList = commentService.getModelIdGroupBySeriesId(errorModelNum);
+        if (null == modelIdGroupBySeriesIdList){
+            return 0;
+        }
 
-        int total = 0;
+        int modelId = 0;
+        int modelNum = 0;
+        try {
+            for (ModelByGroupBySeries modelByGroupBySeries : modelIdGroupBySeriesIdList) {
 
-        //String url = "https://car.autohome.com.cn/config/spec/58422.html#pvareaid=58422";
-        String url = "https://car.autohome.com.cn/config/spec/51937.html#pvareaid=3454541";
-        Connection.Response response = Jsoup.connect(url).validateTLSCertificates(false).ignoreContentType(true).ignoreHttpErrors(true).execute();
-        System.out.println(response.statusCode());
-        Document document = response.parse();
-        Elements scripts = document.select("script:containsData(insertRule)");
+                modelId = modelByGroupBySeries.getModelId();
+                modelNum += 1;
+                //String url = "https://car.autohome.com.cn/config/spec/58422.html#pvareaid=58422";
 
-        ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
-        ScriptEngine engine = scriptEngineManager.getEngineByName("JavaScript");
-        Map<String, String> cssKeyValue =  new HashMap<String, String>();
-        System.out.println("------------css数据------------");
-        scripts.forEach(element -> {
-            String script = SCRIPT_PRE + element.html();
-            try {
-                engine.eval(script);
-            } catch (ScriptException e) {
-                e.printStackTrace();
+                String url = "https://car.autohome.com.cn/config/spec/"+modelId+".html#pvareaid=3454541";
+                Connection.Response response = Jsoup.connect(url).validateTLSCertificates(false).ignoreContentType(true).ignoreHttpErrors(true).execute();
+                System.out.println(response.statusCode());
+                Document document = response.parse();
+                Elements scripts = document.select("script:containsData(insertRule)");
+
+                ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
+                ScriptEngine engine = scriptEngineManager.getEngineByName("JavaScript");
+                Map<String, String> cssKeyValue =  new HashMap<String, String>();
+                System.out.println("------------css数据------------");
+                scripts.forEach(element -> {
+                    String script = SCRIPT_PRE + element.html();
+                    try {
+                        engine.eval(script);
+                    } catch (ScriptException e) {
+                        e.printStackTrace();
+                    }
+                    String css = (String) engine.get("rules");
+                    //System.out.println(css);
+                    for (String str : css.split("\\|")) {
+                        Matcher cssMatcher = CSS_PATTERN.matcher(str);
+                        if (cssMatcher.find()) {
+                            cssKeyValue.put("<span class='" + cssMatcher.group(1) + "'></span>", cssMatcher.group(2));
+                        }
+                    }
+                });
+                Elements contents = document.select("script:containsData(keyLink)");
+                String content = contents.html();
+                System.out.println("------------用css混淆的配置数据------------");
+                //System.out.println(content);
+                //把混淆数据里的样式用上面解析的样式给替代
+                for(Map.Entry<String, String> entry : cssKeyValue.entrySet()) {
+                    content = content.replaceAll(entry.getKey(), entry.getValue());
+                }
+                System.out.println("------------用css替换后的数据------------");
+                //System.out.println(content);
+                engine.eval(content);
+                //System.out.println("------------每个配置结果------------");
+                String keyLink = JSONObject.toJSONString(engine.get("keyLink"));
+                String config = JSONObject.toJSONString(engine.get("config"));
+                String option = JSONObject.toJSONString(engine.get("option"));
+                String bag = JSONObject.toJSONString(engine.get("bag"));
+                String color = JSONObject.toJSONString(engine.get("color"));
+                String innerColor = JSONObject.toJSONString(engine.get("innerColor"));
+                //System.out.println(keyLink);        //key
+                //System.out.println(config);       //配置信息 基本参数，车身，发动机，变速箱，地盘转向，车轮制动
+                //System.out.println(option);       //主被动安全--冰箱
+                //System.out.println(bag);            //选装套件
+                //System.out.println(color);          //外观颜色
+                //System.out.println(innerColor);        //内饰颜色
+                JSONObject configJson = JSON.parseObject(config);
+                JSONObject optionJson = JSON.parseObject(option);
+                //JSONObject bagJson = JSON.parseObject(bag);
+                JSONObject colorJson = JSON.parseObject(color);
+                JSONObject innerColorJson = JSON.parseObject(innerColor);
+
+                //基础配置
+                int configNum = saveConfig(configJson,modelNum);
+
+                //主被动安全--冰箱
+                int optionNum = saveOptionJson(optionJson,modelNum);
+                //选装套件              暂未发现有值的车型
+                //
+                //外观颜色
+                int colorNum = saveColorJson(colorJson,modelNum);
+                //内饰颜色
+                int innerColorNum = saveInnerColorJson(colorJson,modelNum);
+
             }
-            String css = (String) engine.get("rules");
-            //System.out.println(css);
-            for (String str : css.split("\\|")) {
-                Matcher cssMatcher = CSS_PATTERN.matcher(str);
-                if (cssMatcher.find()) {
-                    cssKeyValue.put("<span class='" + cssMatcher.group(1) + "'></span>", cssMatcher.group(2));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ScriptException e) {
+            throw new RuntimeException(e);
+        } finally {
+            ErrorGoOn errorGoOn = new ErrorGoOn();
+            errorGoOn.setModelId(modelId);
+            errorGoOn.setModelNum(modelNum);
+            commentService.insertErrorGo(errorGoOn);
+        }
+        return modelNumTotle;
+
+    }
+    private int saveInnerColorJson(JSONObject colorJson,int seriesNum){
+        int innerColorNum = 0;
+        if (colorJson != null){
+            if (colorJson.getString("returncode").equals("0")){
+                JSONObject result = colorJson.getJSONObject("result");
+                Integer total1 = result.getInteger("total");
+                if (total1 > 0){
+                    JSONObject specitems = result.getJSONObject("specitems");
+                    Map<String, Object> specitemsMap = specitems.getInnerMap();
+                    for (Object specitem : specitemsMap.values()) {
+                        JSONObject specitemJson = JSON.parseObject(specitem.toString());
+                        Integer specid = specitemJson.getInteger("specid");
+                        JSONObject coloritems = specitemJson.getJSONObject("coloritems");
+                        Map<String, Object> coloritemsInnerMap = coloritems.getInnerMap();
+                        for (Object colorItem : coloritemsInnerMap.values()) {
+                            CarHomeExteriorColor carHomeExteriorColor = foreachColorItem(specid, colorItem);
+                            int i = commentService.addVehicleInnerColorParam(carHomeExteriorColor);
+                            innerColorNum += i;
+                            modelNumTotle += 1;
+                            System.out.println("--------------成功保存第"+seriesNum+"款车系的车型内饰颜色参数，第"+innerColorNum+"条数据------总计"+modelNumTotle+"条数据------");
+                        }
+                    }
                 }
             }
-        });
-        Elements contents = document.select("script:containsData(keyLink)");
-        String content = contents.html();
-        System.out.println("------------用css混淆的配置数据------------");
-        //System.out.println(content);
-        //把混淆数据里的样式用上面解析的样式给替代
-        for(Map.Entry<String, String> entry : cssKeyValue.entrySet()) {
-            content = content.replaceAll(entry.getKey(), entry.getValue());
         }
-        System.out.println("------------用css替换后的数据------------");
-        //System.out.println(content);
-        engine.eval(content);
-        System.out.println("------------每个配置结果------------");
-        String keyLink = JSONObject.toJSONString(engine.get("keyLink"));
-        String config = JSONObject.toJSONString(engine.get("config"));
-        String option = JSONObject.toJSONString(engine.get("option"));
-        String bag = JSONObject.toJSONString(engine.get("bag"));
-        String color = JSONObject.toJSONString(engine.get("color"));
-        String innerColor = JSONObject.toJSONString(engine.get("innerColor"));
-        System.out.println(keyLink);        //key
-        System.out.println(config);       //配置信息 基本参数，车身，发动机，变速箱，地盘转向，车轮制动
-        JSONObject jsonObject = JSON.parseObject(config);
-        if (jsonObject != null){
-            if (jsonObject.getString("returncode").equals("0")){
-                JSONObject result = jsonObject.getJSONObject("result");
+        return innerColorNum;
+    }
+
+    private CarHomeExteriorColor foreachColorItem(Integer specid, Object colorItem) {
+        JSONObject colorItemJson = JSON.parseObject(colorItem.toString());
+        Integer clubpicnum = colorItemJson.getInteger("clubpicnum");
+        String name = colorItemJson.getString("name");
+        Integer picnum = colorItemJson.getInteger("picnum");
+        Integer id = colorItemJson.getInteger("id");
+        String value = colorItemJson.getString("value");
+
+        CarHomeExteriorColor carHomeExteriorColor = new CarHomeExteriorColor();
+        carHomeExteriorColor.setColorId(id);
+        carHomeExteriorColor.setClubpicnum(clubpicnum);
+        carHomeExteriorColor.setPicnum(picnum);
+        carHomeExteriorColor.setSpecid(specid);
+        carHomeExteriorColor.setName(name);
+        carHomeExteriorColor.setValue(value);
+        return carHomeExteriorColor;
+    }
+
+    private int saveColorJson(JSONObject colorJson,int seriesNum){
+        int colorNum = 0;
+        if (colorJson != null){
+            if (colorJson.getString("returncode").equals("0")){
+                JSONObject result = colorJson.getJSONObject("result");
+                Integer total1 = result.getInteger("total");
+                if (total1 > 0){
+                    JSONObject specitems = result.getJSONObject("specitems");
+                    Map<String, Object> specitemsMap = specitems.getInnerMap();
+                    for (Object specitem : specitemsMap.values()) {
+                        JSONObject specitemJson = JSON.parseObject(specitem.toString());
+                        Integer specid = specitemJson.getInteger("specid");
+                        JSONObject coloritems = specitemJson.getJSONObject("coloritems");
+                        Map<String, Object> coloritemsInnerMap = coloritems.getInnerMap();
+                        for (Object colorItem : coloritemsInnerMap.values()) {
+                            CarHomeExteriorColor carHomeExteriorColor = foreachColorItem(specid, colorItem);
+                            int i = commentService.addVehicleColorParam(carHomeExteriorColor);
+                            colorNum += i;
+                            modelNumTotle += 1;
+                            System.out.println("--------------成功保存第"+seriesNum+"款车系的车型外饰颜色参数，第"+colorNum+"条数据------总计"+modelNumTotle+"条数据------");
+                        }
+                    }
+                }
+            }
+        }
+        return colorNum;
+    }
+
+    private int saveOptionJson(JSONObject optionJson,int seriesNum){
+        int optionNum = 0;
+        if (optionJson != null){
+            if (optionJson.getString("returncode").equals("0")){
+                JSONObject result = optionJson.getJSONObject("result");
+                JSONObject optionconfigtypeitems = result.getJSONObject("configtypeitems");
+                Map<String, Object> optioninnerMap = optionconfigtypeitems.getInnerMap();
+                for (Object optiono : optioninnerMap.values()) {
+                    JSONObject optionJsonObject = JSON.parseObject(optiono.toString());
+                    String optionName = optionJsonObject.getString("name");
+                    //System.out.println("-------上层名称："+optionName+"---------");
+                    JSONObject optionConfigitems = optionJsonObject.getJSONObject("configitems");
+                    Map<String, Object> optionConfigMap = optionConfigitems.getInnerMap();
+                    for (Object optionConfigValue : optionConfigMap.values()) {
+                        JSONObject optionConfigValueJson = JSON.parseObject(optionConfigValue.toString());
+                        Integer optionConfigid = optionConfigValueJson.getInteger("configid");
+                        Integer optionKeyId = optionConfigValueJson.getInteger("id");
+                        String name = optionConfigValueJson.getString("name");
+                        String pnid = optionConfigValueJson.getString("pnid");
+                        //System.out.println("-----中间名称："+name+"----------");
+                        JSONObject valueitems = optionConfigValueJson.getJSONObject("valueitems");
+                        Map<String, Object> valueitemsInnerMap = valueitems.getInnerMap();
+                        for (Object optionValueItem : valueitemsInnerMap.values()) {
+                            JSONObject optionValueItemJson = JSON.parseObject(optionValueItem.toString());
+                            JSONObject optionPrice = optionValueItemJson.getJSONObject("price");
+                            int optionPriceItemPrice = 0;
+                            String priceSubName = null;
+                            if ( null != optionPrice){
+                                //System.out.println("-----optionPrice非空："+optionPrice+"----------");
+                                Map<String, Object> optionPriceInnerMap = optionPrice.getInnerMap();
+                                for (Object optionPriceItem : optionPriceInnerMap.values()) {
+                                    JSONObject optionPriceItemJson = JSON.parseObject(optionPriceItem.toString());
+                                    optionPriceItemPrice = optionPriceItemJson.getInteger("price");
+                                    priceSubName = optionPriceItemJson.getString("subname");
+                                }
+                            }
+                            Integer specid = optionValueItemJson.getInteger("specid");
+                            JSONObject sublist = optionValueItemJson.getJSONObject("sublist");
+                            int subListPrice = 0;
+                            String subListSubName = null;
+                            int subListSubValue = 0;
+                            if ( null != sublist){
+                                Map<String, Object> sublistInnerMap = sublist.getInnerMap();
+                                for (Object subListValue : sublistInnerMap.values()) {
+                                    JSONObject subListValueJson = JSON.parseObject(subListValue.toString());
+                                    subListPrice = subListValueJson.getInteger("price");
+                                    subListSubName = subListValueJson.getString("subname");
+                                    subListSubValue = subListValueJson.getInteger("subvalue");
+                                    //System.out.println("-----subListValue："+subListSubName);
+                                }
+                            }
+                            String value = optionValueItemJson.getString("value");
+
+                            CarHomeSecurityConfig carHomeSecurityConfig = new CarHomeSecurityConfig();
+                            carHomeSecurityConfig.setTopName(optionName);
+                            carHomeSecurityConfig.setConfigId(optionConfigid);
+                            carHomeSecurityConfig.setKeyId(optionKeyId);
+                            carHomeSecurityConfig.setName(name);
+                            carHomeSecurityConfig.setPnid(pnid);
+                            carHomeSecurityConfig.setPricePrice(optionPriceItemPrice);
+                            carHomeSecurityConfig.setPriceSubname(priceSubName);
+                            carHomeSecurityConfig.setSpecid(specid);
+                            carHomeSecurityConfig.setSublistPrice(subListPrice);
+                            carHomeSecurityConfig.setSublistSubname(subListSubName);
+                            carHomeSecurityConfig.setSublistSubvalue(subListSubValue);
+                            carHomeSecurityConfig.setValue(value);
+
+                            int i = commentService.addVehicleSafeParam(carHomeSecurityConfig);
+                            optionNum += i;
+                            modelNumTotle +=1;
+                            System.out.println("--------------成功保存第"+seriesNum+"款车系的车型安全配置参数，第"+optionNum+"条数据------总计"+modelNumTotle+"条数据------");
+                            //System.out.println("--------数据：车型ID:"+specid+"-----值："+value);
+
+                        }
+                    }
+                }
+            }
+        }
+        return optionNum;
+    }
+
+    private int saveConfig(JSONObject configJson,int seriesNum){
+        int configNum = 0;
+        if (configJson != null){
+            if (configJson.getString("returncode").equals("0")){
+                JSONObject result = configJson.getJSONObject("result");
                 JSONObject paramtypeitems = result.getJSONObject("paramtypeitems");
                 Map<String, Object> innerMap = paramtypeitems.getInnerMap();
                 //System.out.println("--------实验："+innerMap.toString());
                 for (Object value : innerMap.values()) {
                     JSONObject paramitem = JSON.parseObject(value.toString());
                     String name = paramitem.getString("name");
-                    System.out.println("上层名称："+name+"：");
+                    //System.out.println("上层名称："+name+"：");
+
                     JSONObject paramitems = paramitem.getJSONObject("paramitems");
                     Map<String, Object> innerMap1 = paramitems.getInnerMap();
                     for (Object o : innerMap1.values()) {
                         JSONObject jsonObject1 = JSON.parseObject(o.toString());
-                        Integer id = jsonObject1.getInteger("id");
-                        String name1 = jsonObject1.getString("name");
+                        Integer keyId = jsonObject1.getInteger("id");
+                        String keyName = jsonObject1.getString("name");
                         String pnid = jsonObject1.getString("pnid");
                         JSONObject valueitems = jsonObject1.getJSONObject("valueitems");
-                        System.out.println("---------名称："+name1+"：");
+                        //System.out.println("---------名称："+keyName+"：");
                         Map<String, Object> valueitemsInnerMap = valueitems.getInnerMap();
                         for (Object valueParam : valueitemsInnerMap.values()) {
                             JSONObject valueParamJson = JSON.parseObject(valueParam.toString());
                             Integer specid = valueParamJson.getInteger("specid");
                             String value1 = valueParamJson.getString("value");
-                            System.out.println("ID结果："+specid);
-                            System.out.println("字符结果："+value1);
+                           /* System.out.println("ID结果："+specid);
+                            System.out.println("字符结果："+value1);*/
+                            CarHomeBasicParam carHomeBasicParam = new CarHomeBasicParam();
+                            carHomeBasicParam.setTopName(name);
+                            carHomeBasicParam.setKeyId(keyId);
+                            carHomeBasicParam.setName(keyName);
+                            carHomeBasicParam.setPnid(pnid);
+                            carHomeBasicParam.setSpecid(specid);
+                            carHomeBasicParam.setValue(value1);
+                            int i = commentService.addVehicleConfigParam(carHomeBasicParam);
+                            configNum += i;
+                            modelNumTotle +=1;
+                            System.out.println("------成功保存第"+seriesNum+"款车系的车型基础参数，第"+configNum+"条数据-----总计"+modelNumTotle+"条数据-------");
                         }
                     }
-
                 }
             }
         }
-        //System.out.println(option);       //主被动安全--冰箱
-        //System.out.println(bag);            //选装套件
-        //System.out.println(color);          //外观颜色
-        //System.out.println(innerColor);        //内饰颜色
-
-        return total;
-
+        return configNum;
     }
+
 
     public static String getResponseByEncoding(String serverUrl,String encoding) {
         // 用JAVA发起http请求，并返回json格式的结果
@@ -357,5 +569,28 @@ public class CarHomeParamFaced {
         }
         return result;
     }
+
+
+            /*此处为保存关键词，固定334条，已保存
+        JSONObject keyLinkJson = JSON.parseObject(keyLink);
+        if (keyLinkJson != null){
+            Map<String, Object> keyLinkJsonInnerMap = keyLinkJson.getInnerMap();
+            for (Object value : keyLinkJsonInnerMap.values()) {
+                JSONObject keyLinkParseObject = JSON.parseObject(value.toString());
+                Integer id = keyLinkParseObject.getInteger("id");
+                String link = keyLinkParseObject.getString("link");
+                String name = keyLinkParseObject.getString("name");
+
+                CarKeysWords carKeysWords = new CarKeysWords();
+                carKeysWords.setId(id);
+                carKeysWords.setLink(link);
+                carKeysWords.setName(name);
+                int i = commentService.addCarHomeKeys(carKeysWords);
+                total +=i;
+                System.out.println("-------------第"+total+"条数据---------------");
+
+
+            }
+        }*/
 
 }

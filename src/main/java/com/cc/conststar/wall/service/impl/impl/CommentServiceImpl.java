@@ -3,11 +3,10 @@ package com.cc.conststar.wall.service.impl.impl;
 import com.cc.conststar.wall.dao.CommentDao;
 import com.cc.conststar.wall.entity.*;
 import com.cc.conststar.wall.service.impl.CommentService;
-import org.apache.ibatis.annotations.Param;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
@@ -254,5 +253,35 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public ErrorGoOn getError() {
         return commentDao.getError();
+    }
+
+    @Override
+    public int addCarHomeKeys(CarKeysWords carKeysWords) {
+        return commentDao.addCarHomeKeys(carKeysWords);
+    }
+
+    @Override
+    public int addVehicleConfigParam(CarHomeBasicParam carHomeBasicParam) {
+        return commentDao.addVehicleConfigParam(carHomeBasicParam);
+    }
+
+    @Override
+    public int addVehicleSafeParam(CarHomeSecurityConfig carHomeSecurityConfig) {
+        return commentDao.addVehicleSafeParam(carHomeSecurityConfig);
+    }
+
+    @Override
+    public int addVehicleColorParam(CarHomeExteriorColor carHomeExteriorColor) {
+        return commentDao.addVehicleColorParam(carHomeExteriorColor);
+    }
+
+    @Override
+    public int addVehicleInnerColorParam(CarHomeExteriorColor carHomeExteriorColor) {
+        return commentDao.addVehicleInnerColorParam(carHomeExteriorColor);
+    }
+
+    @Override
+    public List<ModelByGroupBySeries> getModelIdGroupBySeriesId(int begin) {
+        return commentDao.getModelIdGroupBySeriesId(begin);
     }
 }

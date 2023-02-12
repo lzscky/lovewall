@@ -63,4 +63,16 @@ public interface CommentService {
 
     ErrorGoOn getError();
 
+    int addCarHomeKeys(CarKeysWords carKeysWords);
+
+    int addVehicleConfigParam(CarHomeBasicParam carHomeBasicParam);
+
+    int addVehicleSafeParam(CarHomeSecurityConfig carHomeSecurityConfig);
+
+    int addVehicleColorParam(CarHomeExteriorColor carHomeExteriorColor);
+
+    int addVehicleInnerColorParam(CarHomeExteriorColor carHomeExteriorColor);
+
+    List<ModelByGroupBySeries> getModelIdGroupBySeriesId(int begin);
+
 }
