@@ -244,9 +244,9 @@
     </select>
 
     <insert id="addManufacturer" >
-        INSERT INTO`car_home_manufacturer` ( `fctid`, `fctname`, `fctPy`, `series_place`, `series_place_num` )
+        INSERT INTO`car_home_manufacturer` ( `fctid`, `fctname`, `fctPy`, `series_place`, `series_place_num`, `brand_id` )
         VALUES
-            ( #{fctid}, #{fctname}, #{fctpy}, #{seriesPlace}, #{seriesPlaceNum} )
+            ( #{fctid}, #{fctname}, #{fctpy}, #{seriesPlace}, #{seriesPlaceNum} , #{brandId})
     </insert>
 
     <insert id="addSeries" >

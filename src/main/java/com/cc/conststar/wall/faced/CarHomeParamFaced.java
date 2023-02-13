@@ -93,6 +93,7 @@ public class CarHomeParamFaced {
                         String seriesplace = jsonObject.getString("seriesplace");
                         Integer seriesplacenum = jsonObject.getInteger("seriesplacenum");
 
+                        carHomeManufacturer.setBrandId(brandid);
                         carHomeManufacturer.setFctid(fctid);
                         carHomeManufacturer.setFctname(fctname);
                         carHomeManufacturer.setFctpy(fctPy);
@@ -256,9 +257,9 @@ public class CarHomeParamFaced {
 
                 modelId = modelByGroupBySeries.getModelId();
                 modelNum += 1;
-                //String url = "https://car.autohome.com.cn/config/spec/58422.html#pvareaid=58422";
+                String url = "https://car.autohome.com.cn/config/spec/51933.html#pvareaid=58422";
+                //String url = "https://car.autohome.com.cn/config/spec/"+modelId+".html#pvareaid=3454541";
 
-                String url = "https://car.autohome.com.cn/config/spec/"+modelId+".html#pvareaid=3454541";
                 Connection.Response response = Jsoup.connect(url).validateTLSCertificates(false).ignoreContentType(true).ignoreHttpErrors(true).execute();
                 System.out.println(response.statusCode());
                 Document document = response.parse();

@@ -2,6 +2,9 @@ package com.cc.conststar.wall.entity;
 
 public class CarHomeManufacturer {
 
+    private int brandId;
+
+
     /**
      * fctid
      */
@@ -27,6 +30,14 @@ public class CarHomeManufacturer {
      */
     private Integer seriesPlaceNum;
 
+
+    public int getBrandId() {
+        return brandId;
+    }
+
+    public void setBrandId(int brandId) {
+        this.brandId = brandId;
+    }
 
     public Integer getFctid() {
         return fctid;
